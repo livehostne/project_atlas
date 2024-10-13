@@ -22,52 +22,49 @@ def check_ffmpeg():
         exit(1)
     log_message("FFmpeg está instalado.")
 
-@app.route('/stream.m3u8')
-def stream_m3u8():
-    # Comando FFmpeg para capturar o stream em formato HLS
+@app.route('/stream.ts')
+def stream():
+    # Comando FFmpeg para capturar o stream
     command = [
         'ffmpeg',
         '-reconnect', '1',
         '-reconnect_streamed', '1',
         '-reconnect_delay_max', '10',
         '-i', STREAM_URL,
-        '-c:v', 'copy',
-        '-c:a', 'copy',
-        '-f', 'hls',  # Formato de saída HLS
-        '-hls_time', '10',  # Tamanho do segmento HLS
-        '-hls_list_size', '0',  # Mantenha todos os segmentos
-        '-hls_flags', 'delete_segments',  # Exclua segmentos antigos
-        'stream.m3u8'  # Nome do arquivo de playlist
+        '-c:v', 'copy',  # Copia o vídeo sem re-encode
+        '-c:a', 'copy',  # Copia o áudio sem re-encode
+        '-f', 'mpegts',  # Formato de saída
+        'pipe:1'  # Envia a saída para o stdout
     ]
 
     # Inicia o processo FFmpeg
-    log_message("Iniciando o processo FFmpeg para .m3u8.")
+    log_message("Iniciando o processo FFmpeg.")
     process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     # Função para gerar o stream
-    def generate_m3u8():
+    def generate():
         try:
             while True:
                 chunk = process.stdout.read(1024)
                 if not chunk:
-                    log_message("O processo FFmpeg não retornou mais dados para .m3u8.")
+                    log_message("O processo FFmpeg não retornou mais dados.")
                     break
                 yield chunk
         finally:
             process.stdout.close()
             process.stderr.close()
             process.wait()
-            log_message("Processo FFmpeg encerrado para .m3u8.")
+            log_message("Processo FFmpeg encerrado.")
 
     # Verifica se houve erro no processo
     if process.returncode is not None:
         error_message = process.stderr.read().decode()
-        log_message(f"Erro ao iniciar o FFmpeg para .m3u8: {error_message}")
+        log_message(f"Erro ao iniciar o FFmpeg: {error_message}")
         return "Erro ao iniciar o stream", 500
 
     # Retorna a resposta de streaming
-    log_message("Streaming .m3u8 iniciado com sucesso.")
-    return Response(stream_with_context(generate_m3u8()), content_type='application/vnd.apple.mpegurl')
+    log_message("Streaming iniciado com sucesso.")
+    return Response(stream_with_context(generate()), content_type='video/MP2T')
 
 if __name__ == '__main__':
     check_ffmpeg()  # Verifica se o FFmpeg está instalado
