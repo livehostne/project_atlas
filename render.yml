@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: my-flask-stream
+    env: docker
+    plan: free
+    buildCommand: ""
+    startCommand: ""
