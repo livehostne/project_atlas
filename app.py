@@ -22,50 +22,6 @@ def check_ffmpeg():
         exit(1)
     log_message("FFmpeg está instalado.")
 
-@app.route('/stream.ts')
-def stream_ts():
-    # Comando FFmpeg para capturar o stream em formato TS
-    command = [
-        'ffmpeg',
-        '-reconnect', '1',
-        '-reconnect_streamed', '1',
-        '-reconnect_delay_max', '10',
-        '-i', STREAM_URL,
-        '-c:v', 'copy',  # Copia o vídeo sem re-encode
-        '-c:a', 'copy',  # Copia o áudio sem re-encode
-        '-f', 'mpegts',  # Formato de saída
-        'pipe:1'  # Envia a saída para o stdout
-    ]
-
-    # Inicia o processo FFmpeg
-    log_message("Iniciando o processo FFmpeg para .ts.")
-    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-    # Função para gerar o stream
-    def generate_ts():
-        try:
-            while True:
-                chunk = process.stdout.read(1024)
-                if not chunk:
-                    log_message("O processo FFmpeg não retornou mais dados para .ts.")
-                    break
-                yield chunk
-        finally:
-            process.stdout.close()
-            process.stderr.close()
-            process.wait()
-            log_message("Processo FFmpeg encerrado para .ts.")
-
-    # Verifica se houve erro no processo
-    if process.returncode is not None:
-        error_message = process.stderr.read().decode()
-        log_message(f"Erro ao iniciar o FFmpeg para .ts: {error_message}")
-        return "Erro ao iniciar o stream", 500
-
-    # Retorna a resposta de streaming
-    log_message("Streaming .ts iniciado com sucesso.")
-    return Response(stream_with_context(generate_ts()), content_type='video/MP2T')
-
 @app.route('/stream.m3u8')
 def stream_m3u8():
     # Comando FFmpeg para capturar o stream em formato HLS
