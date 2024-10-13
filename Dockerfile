@@ -1,5 +1,9 @@
-# Usar uma imagem base do Python com FFmpeg
-FROM jrottenberg/ffmpeg:4.4-scratch
+# Usar uma imagem base do Python
+FROM python:3.10-slim
+
+# Atualizar os pacotes e instalar FFmpeg
+RUN apt-get update && apt-get install -y ffmpeg && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Defina o diretório de trabalho
 WORKDIR /app
