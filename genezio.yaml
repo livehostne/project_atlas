@@ -1,0 +1,10 @@
+frontend:
+    path: ./
+    publish: ""
+    scripts:
+        build: python3 app.py
+        deploy: pip3 install -r requirements.txt
+    subdomain: atlas
+name: atlas
+region: us-east-1
+yamlVersion: 2
