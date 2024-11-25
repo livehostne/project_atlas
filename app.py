@@ -24,50 +24,22 @@ def check_ffmpeg():
         exit(1)
     log_message("FFmpeg está instalado.")
 
-@app.route('/stream.ts')
-def stream_ts():
-    # Comando FFmpeg para capturar e converter o stream para TS
-    command = [
-        'ffmpeg',
-        '-user_agent', USER_AGENT,  # Define o User-Agent
-        '-i', STREAM_URL,          # URL de entrada (DASH)
-        '-c:v', 'copy',            # Copia o vídeo sem re-encode
-        '-c:a', 'copy',            # Copia o áudio sem re-encode
-        '-f', 'mpegts',            # Define o formato de saída para TS
-        'pipe:1'                   # Envia a saída para o stdout
-    ]
-
-    log_message("Iniciando o processo FFmpeg para TS.")
-    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-    def generate():
-        try:
-            while True:
-                chunk = process.stdout.read(1024)
-                if not chunk:
-                    log_message("O processo FFmpeg não retornou mais dados.")
-                    break
-                yield chunk
-        finally:
-            process.terminate()  # Garante que o FFmpeg seja encerrado
-            log_message("Processo FFmpeg encerrado para TS.")
-
-    return Response(stream_with_context(generate()), content_type='video/MP2T')
-
 @app.route('/stream.m3u8')
 def stream_m3u8():
     # Comando FFmpeg para capturar e converter o stream para HLS
     command = [
         'ffmpeg',
         '-user_agent', USER_AGENT,  # Define o User-Agent
-        '-i', STREAM_URL,          # URL de entrada (DASH)
-        '-c:v', 'copy',            # Copia o vídeo sem re-encode
-        '-c:a', 'copy',            # Copia o áudio sem re-encode
-        '-f', 'hls',               # Define o formato de saída para HLS
-        '-hls_time', '10',         # Define a duração de cada segmento
-        '-hls_list_size', '0',     # Gera todos os segmentos
-        '-hls_flags', 'delete_segments',
-        'pipe:1'                   # Envia a saída para o stdout
+        '-i', STREAM_URL,           # URL de entrada (DASH)
+        '-c:v', 'copy',             # Copia o vídeo sem re-encode
+        '-c:a', 'copy',             # Copia o áudio sem re-encode
+        '-f', 'hls',                # Define o formato de saída para HLS
+        '-hls_time', '10',          # Define a duração de cada segmento
+        '-hls_list_size', '0',      # Gera todos os segmentos
+        '-hls_flags', 'delete_segments',  # Remove segmentos antigos para economizar memória
+        '-flush_packets', '0',      # Garante fluxo contínuo
+        '-preset', 'fast',          # Melhor performance de codificação
+        'pipe:1'                    # Envia a saída para o stdout
     ]
 
     log_message("Iniciando o processo FFmpeg para M3U8.")
@@ -76,7 +48,7 @@ def stream_m3u8():
     def generate():
         try:
             while True:
-                chunk = process.stdout.read(1024)
+                chunk = process.stdout.read(512)  # Menor buffer para evitar travamentos
                 if not chunk:
                     log_message("O processo FFmpeg não retornou mais dados.")
                     break
