@@ -1,6 +1,5 @@
 import subprocess
 from flask import Flask, Response, stream_with_context
-import os
 import time
 
 app = Flask(__name__)
@@ -50,42 +49,42 @@ def stream_ts():
                     break
                 yield chunk
         finally:
-            process.stdout.close()
-            process.stderr.close()
-            process.wait()
-            log_message("Processo FFmpeg encerrado.")
+            process.terminate()  # Garante que o FFmpeg seja encerrado
+            log_message("Processo FFmpeg encerrado para TS.")
 
     return Response(stream_with_context(generate()), content_type='video/MP2T')
 
 @app.route('/stream.m3u8')
 def stream_m3u8():
-    # Caminho temporário para salvar o arquivo M3U8
-    output_path = "./output.m3u8"
-
-    # Comando FFmpeg para capturar e converter o stream para M3U8
+    # Comando FFmpeg para capturar e converter o stream para HLS
     command = [
         'ffmpeg',
         '-user_agent', USER_AGENT,  # Define o User-Agent
         '-i', STREAM_URL,          # URL de entrada (DASH)
         '-c:v', 'copy',            # Copia o vídeo sem re-encode
         '-c:a', 'copy',            # Copia o áudio sem re-encode
-        '-f', 'hls',               # Define o formato de saída para HLS (M3U8)
+        '-f', 'hls',               # Define o formato de saída para HLS
         '-hls_time', '10',         # Define a duração de cada segmento
-        '-hls_list_size', '0',     # Cria uma lista completa de segmentos
+        '-hls_list_size', '0',     # Gera todos os segmentos
         '-hls_flags', 'delete_segments',
-        output_path                # Salva no arquivo temporário
+        'pipe:1'                   # Envia a saída para o stdout
     ]
 
     log_message("Iniciando o processo FFmpeg para M3U8.")
-    subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-    # Gera o M3U8 para o cliente
     def generate():
-        with open(output_path, 'rb') as f:
-            while chunk := f.read(1024):
+        try:
+            while True:
+                chunk = process.stdout.read(1024)
+                if not chunk:
+                    log_message("O processo FFmpeg não retornou mais dados.")
+                    break
                 yield chunk
+        finally:
+            process.terminate()  # Garante que o FFmpeg seja encerrado
+            log_message("Processo FFmpeg encerrado para M3U8.")
 
-    log_message("Streaming M3U8 iniciado.")
     return Response(stream_with_context(generate()), content_type='application/vnd.apple.mpegurl')
 
 if __name__ == '__main__':
