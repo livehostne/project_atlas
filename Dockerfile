@@ -1,25 +1,16 @@
 # Usa a imagem do Debian 10 como base
 FROM debian:10
 
-# Atualiza os pacotes e instala o SSH, wget, curl e unzip
+# Atualiza os pacotes e instala tmate, wget, curl e unzip
 RUN apt-get update && apt-get install -y \
-    openssh-server \
     wget \
     curl \
     unzip \
+    tmate \
     && apt-get clean
 
 # Configura o diretório de trabalho para /app
 WORKDIR /app
-
-# Configura o SSH para rodar em uma porta diferente (exemplo: 2222)
-RUN sed -i 's/#Port 22/Port 2222/' /etc/ssh/sshd_config
-
-# Gera as chaves do SSH se ainda não existirem
-RUN mkdir -p /run/sshd && ssh-keygen -A
-
-# Cria um usuário para o SSH com senha
-RUN useradd -m -s /bin/bash sshuser && echo "sshuser:sshpassword" | chpasswd
 
 # Baixa e instala o Ngrok
 RUN wget -q -O /tmp/ngrok.zip https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-stable-linux-amd64.zip && \
@@ -30,8 +21,8 @@ RUN wget -q -O /tmp/ngrok.zip https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-stable-
 COPY start.sh ./start.sh
 RUN chmod +x ./start.sh
 
-# Expõe a porta do SSH personalizada
-EXPOSE 2222
+# Expõe a porta do tmate (não necessário, mas deixo por clareza)
+EXPOSE 4000
 
 # Comando para iniciar os serviços
 CMD ["./start.sh"]
