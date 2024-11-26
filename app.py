@@ -5,7 +5,7 @@ import time
 app = Flask(__name__)
 
 # URL do stream DASH
-STREAM_URL = 'https://cdn.live.br1.jmvstream.com/w/LVW-8379/LVW8379_rIq6ZYiIiA/playlist.m3u8'  # Substitua pela URL real
+STREAM_URL = 'https://sv1.iptvcasa.online/carlinhos/carlinhos/1361253.m3u8'  # Substitua pela URL real
 LOG_FILE = './stream_log.txt'  # Arquivo de log para monitoramento
 
 # User-Agent simulado
